@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>そろそろリスト</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f2;
+      color: #222;
+    }
+
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 14px 10px 32px;
+    }
+
+    header {
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .add-box {
+      display: flex;
+      gap: 6px;
+      background: #fff;
+      padding: 8px;
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      margin-bottom: 10px;
+    }
+
+    input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 15px;
+      outline: none;
+      min-width: 0;
+    }
+
+    input:focus {
+      border-color: #222;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #222;
+      color: #fff;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .section-title {
+      margin: 12px 4px 7px;
+      font-size: 13px;
+      color: #666;
+      font-weight: 700;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .item {
+      background: #fff;
+      border-radius: 14px;
+      padding: 8px 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      border-left: 6px solid #ddd;
+    }
+
+    .item.danger {
+      border-left-color: #e5484d;
+    }
+
+    .item.warning {
+      border-left-color: #f5a524;
+    }
+
+    .item.safe {
+      border-left-color: #55a36a;
+    }
+
+    .name {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .meta {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.28;
+    }
+
+    .priority {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      background: #eee;
+    }
+
+    .button-stack {
+      display: flex;
+      flex-direction: row;
+      gap: 4px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .pin-button {
+      min-width: 50px;
+      background: #b7791f;
+      padding: 8px 6px;
+      font-size: 11px;
+    }
+
+    .hold-button {
+      min-width: 50px;
+      background: #777;
+      padding: 8px 6px;
+      font-size: 11px;
+    }
+
+    .buy-button {
+      min-width: 50px;
+      background: #2f6f46;
+      padding: 8px 6px;
+      font-size: 11px;
+    }
+
+    .snooze-label {
+      display: inline-block;
+      margin-left: 4px;
+      color: #777;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .pin-label {
+      display: inline-block;
+      margin-left: 4px;
+      color: #b7791f;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .delete-button {
+      margin-top: 2px;
+      background: transparent;
+      color: #999;
+      padding: 2px 0;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      padding: 30px 10px;
+      background: #fff;
+      border-radius: 18px;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #888;
+      line-height: 1.35;
+    }
+
+    .tool-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .secondary-button {
+      background: #eee;
+      color: #333;
+      font-size: 11px;
+      padding: 7px 8px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>そろそろリスト</h1>
+      <p class="subtitle">
+        買った頻度から、そろそろ買うべきものを上に並べる買い物リスト。<br />
+        未記録のものは優先度100%で上に表示。邪魔なものは無期保留、必要なものは最優先にできます。
+      </p>
+    </header>
+
+    <form class="add-box" id="addForm">
+      <input id="itemInput" type="text" placeholder="例：牛乳、トマト、豚肉" autocomplete="off" />
+      <button type="submit">追加</button>
+    </form>
+
+    <div class="section-title">優先的に買うもの</div>
+    <section class="list" id="list"></section>
+
+    <div class="tool-box">
+      <button class="secondary-button" id="exportButton" type="button">バックアップ書き出し</button>
+      <button class="secondary-button" id="importButton" type="button">バックアップ読み込み</button>
+      <button class="secondary-button" id="resetButton" type="button">初期データに戻す</button>
+      <input id="importFileInput" type="file" accept="application/json,.json" style="display: none;" />
+    </div>
+
+    <p class="footer-note">
+      「買った」を押すたびに購入日を記録します。<br />
+      最優先にしたものは一番上へ、保留したものは下へ移動します。<br />
+      データはこの端末のブラウザ内に保存されます。<br />
+      バージョン：β3
+    </p>
+  </main>
+
+  <script>
+    const APP_NAME = "そろそろリスト";
+    const CURRENT_DATA_VERSION = 2;
+
+    // 今後アップデートしても、この保存キーは基本的に変更しない
+    const STORAGE_KEY = "sorosoro-shopping-list";
+
+    const defaultItems = [
+      { name: "牛乳", history: [], isHeld: false, isPinned: false },
+      { name: "卵", history: [], isHeld: false, isPinned: false },
+      { name: "トマト", history: [], isHeld: false, isPinned: false },
+      { name: "にんじん", history: [], isHeld: false, isPinned: false },
+      { name: "じゃがいも", history: [], isHeld: false, isPinned: false },
+      { name: "バナナ", history: [], isHeld: false, isPinned: false },
+      { name: "豚肉", history: [], isHeld: false, isPinned: false },
+      { name: "鶏肉", history: [], isHeld: false, isPinned: false },
+      { name: "牛肉", history: [], isHeld: false, isPinned: false },
+      { name: "ミンチ", history: [], isHeld: false, isPinned: false },
+      { name: "豆腐", history: [], isHeld: false, isPinned: false },
+      { name: "チーズ", history: [], isHeld: false, isPinned: false },
+      { name: "食パン", history: [], isHeld: false, isPinned: false },
+      { name: "菓子パン", history: [], isHeld: false, isPinned: false },
+      { name: "ヨーグルト", history: [], isHeld: false, isPinned: false },
+      { name: "コーヒー", history: [], isHeld: false, isPinned: false },
+      { name: "醤油", history: [], isHeld: false, isPinned: false }
+    ];
+
+    let items = loadItems();
+
+    const listEl = document.getElementById("list");
+    const addForm = document.getElementById("addForm");
+    const itemInput = document.getElementById("itemInput");
+    const resetButton = document.getElementById("resetButton");
+    const exportButton = document.getElementById("exportButton");
+    const importButton = document.getElementById("importButton");
+    const importFileInput = document.getElementById("importFileInput");
+
+    addForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = itemInput.value.trim();
+      if (!name) return;
+
+      const alreadyExists = items.some(item => item.name === name);
+      if (alreadyExists) {
+        alert("すでに登録されています");
+        return;
+      }
+
+      items.push({
+        name,
+        history: [],
+        isHeld: false,
+        isPinned: false
+      });
+
+      itemInput.value = "";
+      saveItems();
+      render();
+    });
+
+    resetButton.addEventListener("click", () => {
+      const ok = confirm("初期データに戻しますか？今の記録は消えます。");
+      if (!ok) return;
+
+      items = cloneData(defaultItems);
+      saveItems();
+      render();
+    });
+
+    exportButton.addEventListener("click", exportBackup);
+
+    importButton.addEventListener("click", () => {
+      importFileInput.click();
+    });
+
+    importFileInput.addEventListener("change", importBackup);
+
+    function exportBackup() {
+      const backup = {
+        appName: APP_NAME,
+        version: CURRENT_DATA_VERSION,
+        exportedAt: new Date().toISOString(),
+        items: normalizeItems(items)
+      };
+
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const now = new Date();
+      const fileName =
+        "sorosoro-list-backup-" +
+        now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, "0") +
+        String(now.getDate()).padStart(2, "0") +
+        ".json";
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function importBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        try {
+          const backup = JSON.parse(reader.result);
+          const validated = validateCurrentData(backup);
+
+          const ok = confirm("バックアップを読み込みますか？現在のデータは上書きされます。");
+          if (!ok) return;
+
+          items = validated.items;
+          saveItems();
+          render();
+          alert("バックアップを読み込みました");
+        } catch (error) {
+          alert("読み込みに失敗しました: " + error.message);
+        } finally {
+          importFileInput.value = "";
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    function buyItem(name) {
+      items = items.map(item => {
+        if (item.name !== name) return item;
+
+        return {
+          ...item,
+          history: [...item.history, todayString()],
+          isHeld: false,
+          isPinned: false
+        };
+      });
+
+      saveItems();
+      render();
+    }
+
+    function pinItem(name) {
+      items = items.map(item => {
+        if (item.name !== name) return item;
+
+        return {
+          ...item,
+          isPinned: true,
+          isHeld: false
+        };
+      });
+
+      saveItems();
+      render();
+    }
+
+    function holdItem(name) {
+      items = items.map(item => {
+        if (item.name !== name) return item;
+
+        return {
+          ...item,
+          isHeld: true,
+          isPinned: false
+        };
+      });
+
+      saveItems();
+      render();
+    }
+
+    function deleteItem(name) {
+      const ok = confirm(`${name}をリストから削除しますか？`);
+      if (!ok) return;
+
+      items = items.filter(item => item.name !== name);
+      saveItems();
+      render();
+    }
+
+    function render() {
+      const rankedItems = items
+        .map(item => ({
+          ...item,
+          stats: calculateStats(item)
+        }))
+        .sort((a, b) => b.stats.priority - a.stats.priority);
+
+      if (rankedItems.length === 0) {
+        listEl.innerHTML = `<div class="empty">食材を追加してください</div>`;
+        return;
+      }
+
+      listEl.innerHTML = rankedItems.map(item => itemTemplate(item)).join("");
+
+      document.querySelectorAll("[data-buy]").forEach(button => {
+        button.addEventListener("click", () => buyItem(button.dataset.buy));
+      });
+
+      document.querySelectorAll("[data-pin]").forEach(button => {
+        button.addEventListener("click", () => pinItem(button.dataset.pin));
+      });
+
+      document.querySelectorAll("[data-hold]").forEach(button => {
+        button.addEventListener("click", () => holdItem(button.dataset.hold));
+      });
+
+      document.querySelectorAll("[data-delete]").forEach(button => {
+        button.addEventListener("click", () => deleteItem(button.dataset.delete));
+      });
+    }
+
+    function itemTemplate(item) {
+      const { name, stats } = item;
+      const statusClass = getStatusClass(stats.priority);
+      const statusLabel = getStatusLabel(stats.priority);
+      const holdText = stats.isHeld ? `<span class="snooze-label">保留中</span>` : "";
+      const pinText = stats.isPinned ? `<span class="pin-label">最優先</span>` : "";
+
+      return `
+        <article class="item ${statusClass}">
+          <div>
+            <div class="name">${escapeHtml(name)}${pinText}${holdText}</div>
+            <div class="meta">
+              前回：${stats.daysSinceLastBuy}日前 / 平均：${stats.averageIntervalText}<br />
+              目安：${stats.nextBuyDateText} / 直近${stats.usedHistoryCount}件
+            </div>
+            <span class="priority">${statusLabel} ${stats.priorityPercent}%</span>
+            <button class="delete-button" data-delete="${escapeHtml(name)}">削除</button>
+          </div>
+          <div class="button-stack">
+            <button class="pin-button" data-pin="${escapeHtml(name)}">最優先</button>
+            <button class="hold-button" data-hold="${escapeHtml(name)}">保留</button>
+            <button class="buy-button" data-buy="${escapeHtml(name)}">買った</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function calculateStats(item) {
+      const history = item.history
+        .map(date => new Date(date + "T00:00:00"))
+        .filter(date => !Number.isNaN(date.getTime()))
+        .sort((a, b) => a - b);
+
+      const isHeld = Boolean(item.isHeld);
+      const isPinned = Boolean(item.isPinned);
+
+      // まだ一度も「買った」を押していないものは、買う候補として最上位に出す
+      if (history.length === 0) {
+        const basePriority = 1;
+        const priority = isPinned ? 999 : isHeld ? -1 : basePriority;
+
+        return {
+          daysSinceLastBuy: "-",
+          averageInterval: null,
+          averageIntervalText: "未記録",
+          priority,
+          priorityPercent: isPinned ? 999 : isHeld ? 0 : 100,
+          nextBuyDateText: isPinned ? "最優先" : isHeld ? "保留中" : "まず買ったら押す",
+          usedHistoryCount: 0,
+          isHeld,
+          isPinned
+        };
+      }
+
+      const lastBuyDate = history[history.length - 1];
+      const daysSinceLastBuy = diffDays(lastBuyDate, todayDate());
+      const averageInfo = calculateAverageIntervalFromRecentHistory(history, 5);
+      const averageInterval = averageInfo.averageInterval;
+      const basePriority = averageInterval > 0 ? daysSinceLastBuy / averageInterval : 0;
+      const priority = isPinned ? 999 : isHeld ? -1 : basePriority;
+      const nextBuyDate = addDays(lastBuyDate, Math.round(averageInterval || 3));
+
+      return {
+        daysSinceLastBuy,
+        averageInterval,
+        averageIntervalText: averageInterval ? `${averageInterval.toFixed(1)}日` : "データ不足",
+        priority,
+        priorityPercent: isPinned ? 999 : isHeld ? 0 : Math.round(basePriority * 100),
+        nextBuyDateText: isPinned ? "最優先" : isHeld ? "保留中" : formatDate(nextBuyDate),
+        usedHistoryCount: averageInfo.usedHistoryCount,
+        isHeld,
+        isPinned
+      };
+    }
+
+    // 直近5件の購入履歴から平均購入間隔を計算する
+    function calculateAverageIntervalFromRecentHistory(history, limit = 5) {
+      if (history.length <= 1) {
+        return {
+          averageInterval: 3,
+          usedHistoryCount: history.length
+        };
+      }
+
+      const recentHistory = history.slice(-limit);
+      const intervals = [];
+
+      for (let i = 1; i < recentHistory.length; i++) {
+        const interval = diffDays(recentHistory[i - 1], recentHistory[i]);
+        if (interval > 0) intervals.push(interval);
+      }
+
+      if (intervals.length === 0) {
+        return {
+          averageInterval: 3,
+          usedHistoryCount: recentHistory.length
+        };
+      }
+
+      const total = intervals.reduce((sum, value) => sum + value, 0);
+
+      return {
+        averageInterval: total / intervals.length,
+        usedHistoryCount: recentHistory.length
+      };
+    }
+
+    function getStatusClass(priority) {
+      if (priority >= 1) return "danger";
+      if (priority >= 0.75) return "warning";
+      return "safe";
+    }
+
+    function getStatusLabel(priority) {
+      if (priority >= 1) return "買う候補";
+      if (priority >= 0.75) return "そろそろ";
+      return "まだ大丈夫";
+    }
+
+    function loadItems() {
+      const raw = getStorageItem(STORAGE_KEY);
+      if (!raw) return cloneData(defaultItems);
+
+      try {
+        const storedData = JSON.parse(raw);
+        return validateCurrentData(storedData).items;
+      } catch (error) {
+        console.warn("保存データの読み込みに失敗しました", error);
+        return cloneData(defaultItems);
+      }
+    }
+
+    function validateCurrentData(data) {
+      if (!data || typeof data !== "object") {
+        throw new Error("データの形式が正しくありません");
+      }
+
+      if (Number(data.version) !== CURRENT_DATA_VERSION) {
+        throw new Error(`このバックアップは現在のバージョンに対応していません（対応バージョン: ${CURRENT_DATA_VERSION}）`);
+      }
+
+      if (!Array.isArray(data.items)) {
+        throw new Error("データ内に買い物リストが見つかりません");
+      }
+
+      return {
+        version: CURRENT_DATA_VERSION,
+        items: normalizeItems(data.items)
+      };
+    }
+
+    function normalizeItems(sourceItems) {
+      const normalized = [];
+      const seenNames = new Set();
+
+      sourceItems.forEach(sourceItem => {
+        const normalizedItem = normalizeItem(sourceItem);
+        if (!normalizedItem) return;
+
+        // 同名の重複は最初の1件を優先して、アップデート後の表示崩れを防ぐ
+        if (seenNames.has(normalizedItem.name)) return;
+
+        seenNames.add(normalizedItem.name);
+        normalized.push(normalizedItem);
+      });
+
+      return normalized;
+    }
+
+    function normalizeItem(item) {
+      if (!item || typeof item !== "object") return null;
+
+      const name = String(item.name || "").trim();
+      if (!name) return null;
+
+      const history = Array.isArray(item.history)
+        ? item.history
+            .map(date => String(date))
+            .filter(date => /^\d{4}-\d{2}-\d{2}$/.test(date))
+        : [];
+
+      return {
+        name,
+        history,
+        isHeld: Boolean(item.isHeld),
+        isPinned: Boolean(item.isPinned)
+      };
+    }
+
+    function saveItems() {
+      items = normalizeItems(items);
+      saveStoredItems(items);
+    }
+
+    function saveStoredItems(itemsToSave) {
+      const storedData = {
+        appName: APP_NAME,
+        version: CURRENT_DATA_VERSION,
+        updatedAt: new Date().toISOString(),
+        items: normalizeItems(itemsToSave)
+      };
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(storedData));
+      } catch (error) {
+        console.warn("保存に失敗しました", error);
+        alert("ブラウザへの保存に失敗しました。容量不足、またはプライベートブラウズの可能性があります。");
+      }
+    }
+
+    function getStorageItem(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    }
+
+    function cloneData(value) {
+      if (typeof structuredClone === "function") {
+        return structuredClone(value);
+      }
+
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function todayDate() {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+
+    function todayString() {
+      return dateString(todayDate());
+    }
+
+    function dateString(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+
+    function diffDays(startDate, endDate) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      return Math.floor((endDate - startDate) / msPerDay);
+    }
+
+    function addDays(date, days) {
+      const result = new Date(date);
+      result.setDate(result.getDate() + days);
+      return result;
+    }
+
+    function formatDate(date) {
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    render();
+
+  </script>
+</body>
+</html>
