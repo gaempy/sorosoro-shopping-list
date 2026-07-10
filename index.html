@@ -249,7 +249,8 @@
     <p class="footer-note">
       「買った」を押すたびに購入日を記録します。<br />
       最優先にしたものは一番上へ、保留したものは下へ移動します。<br />
-      データはこの端末のブラウザ内に保存されます。
+      データはこの端末のブラウザ内に保存されます。<br />
+      バージョン：Ver.2.1
     </p>
   </main>
 
@@ -259,11 +260,6 @@
 
     // 今後アップデートしても、この保存キーは基本的に変更しない
     const STORAGE_KEY = "sorosoro-shopping-list";
-
-    // 過去β版で使っていた保存キー。見つけた場合は新形式へ自動移行する
-    const LEGACY_STORAGE_KEYS = [
-      "sorosoro-shopping-list-v5-local-compact-hold-pin"
-    ];
 
     const defaultItems = [
       { name: "牛乳", history: [], isHeld: false, isPinned: false },
@@ -374,12 +370,12 @@
       reader.onload = () => {
         try {
           const backup = JSON.parse(reader.result);
-          const migrated = migrateData(backup);
+          const validated = validateCurrentData(backup);
 
           const ok = confirm("バックアップを読み込みますか？現在のデータは上書きされます。");
           if (!ok) return;
 
-          items = migrated.items;
+          items = validated.items;
           saveItems();
           render();
           alert("バックアップを読み込みました");
@@ -600,75 +596,35 @@
     }
 
     function loadItems() {
-      const stored = readStoredData();
-
-      if (!stored) {
-        return cloneData(defaultItems);
-      }
+      const raw = getStorageItem(STORAGE_KEY);
+      if (!raw) return cloneData(defaultItems);
 
       try {
-        const migrated = migrateData(stored.data);
-
-        // 旧キー・旧形式から読めた場合は、新しい固定キーと新形式へ保存し直す
-        if (stored.key !== STORAGE_KEY || migrated.version !== CURRENT_DATA_VERSION) {
-          saveStoredItems(migrated.items);
-        }
-
-        return migrated.items;
+        const storedData = JSON.parse(raw);
+        return validateCurrentData(storedData).items;
       } catch (error) {
         console.warn("保存データの読み込みに失敗しました", error);
         return cloneData(defaultItems);
       }
     }
 
-    function readStoredData() {
-      const currentRaw = getStorageItem(STORAGE_KEY);
-      if (currentRaw) {
-        return {
-          key: STORAGE_KEY,
-          data: parseStoredJson(currentRaw)
-        };
+    function validateCurrentData(data) {
+      if (!data || typeof data !== "object") {
+        throw new Error("データの形式が正しくありません");
       }
 
-      for (const key of LEGACY_STORAGE_KEYS) {
-        const legacyRaw = getStorageItem(key);
-        if (legacyRaw) {
-          return {
-            key,
-            data: parseStoredJson(legacyRaw)
-          };
-        }
+      if (Number(data.version) !== CURRENT_DATA_VERSION) {
+        throw new Error(`このバックアップは現在のバージョンに対応していません（対応バージョン: ${CURRENT_DATA_VERSION}）`);
       }
 
-      return null;
-    }
-
-    function parseStoredJson(raw) {
-      try {
-        return JSON.parse(raw);
-      } catch {
-        throw new Error("保存データのJSON形式が壊れています");
-      }
-    }
-
-    function migrateData(data) {
-      // β版のlocalStorage形式：items配列そのもの
-      if (Array.isArray(data)) {
-        return {
-          version: 0,
-          items: normalizeItems(data)
-        };
+      if (!Array.isArray(data.items)) {
+        throw new Error("データ内に買い物リストが見つかりません");
       }
 
-      // v1以降のバックアップ／保存形式：{ version, items }
-      if (data && typeof data === "object" && Array.isArray(data.items)) {
-        return {
-          version: Number(data.version || 1),
-          items: normalizeItems(data.items)
-        };
-      }
-
-      throw new Error("保存データの形式が正しくありません");
+      return {
+        version: CURRENT_DATA_VERSION,
+        items: normalizeItems(data.items)
+      };
     }
 
     function normalizeItems(sourceItems) {
@@ -701,14 +657,10 @@
             .filter(date => /^\d{4}-\d{2}-\d{2}$/.test(date))
         : [];
 
-      // 古い一時保留形式が残っていて、期限内なら「保留中」に移行する
-      const oldSnoozeDate = parseDateKey(item.snoozedUntil);
-      const oldSnoozeActive = oldSnoozeDate && oldSnoozeDate >= todayDate();
-
       return {
         name,
         history,
-        isHeld: Boolean(item.isHeld) || Boolean(oldSnoozeActive),
+        isHeld: Boolean(item.isHeld),
         isPinned: Boolean(item.isPinned)
       };
     }
@@ -766,12 +718,6 @@
       return `${year}-${month}-${day}`;
     }
 
-    function parseDateKey(value) {
-      if (!value) return null;
-      const [year, month, day] = String(value).split("-").map(Number);
-      if (!year || !month || !day) return null;
-      return new Date(year, month - 1, day);
-    }
 
     function diffDays(startDate, endDate) {
       const msPerDay = 1000 * 60 * 60 * 24;
